@@ -1,14 +1,14 @@
-# log-output
+# log_output
 
-A lightweight Python 3.14 application managed by `uv` that generates a random string at startup and outputs it every 5 seconds along with an ISO timestamp.
+A lightweight Python 3.14 application managed by `uv` that generates a random string at startup and outputs it every 5 seconds along with an ISO timestamp, deployed declaratively in Kubernetes.
 
 ---
 
 ## Prerequisites
 
-* [uv](https://docs.astral.sh/uv/) installed locally
-* [Docker](https://www.docker.com/) installed
-* A Kubernetes cluster (`minikube`, `k3d`, `kind`, or a cloud cluster) with `kubectl` configured
+- [uv](https://docs.astral.sh/uv/) installed locally
+- [Docker](https://www.docker.com/) installed
+- A Kubernetes cluster (`minikube`, `k3d`, `kind`, or a cloud cluster) with `kubectl` configured
 
 ---
 
@@ -28,70 +28,65 @@ A lightweight Python 3.14 application managed by `uv` that generates a random st
 
 ## Docker Instructions
 
-1. **Build the Docker Image:**
+1. **Build the Docker Image (using the image name `log-outout`):**
    ```bash
-   docker build -t log-output:latest .
+   docker build -t log-outout:latest .
    ```
 
 2. **Run the Docker Container:**
    ```bash
-   docker run --rm log-output:latest
+   docker run --rm log-outout:latest
    ```
 
 ---
 
-## Running in Kubernetes via `kubectl`
+## Running in Kubernetes Declaratively
 
 ### Step 1: Make the Image Available to Your Cluster
 
-* **If using a remote registry (e.g., Docker Hub):**
-  Tag and push your image:
+- **If using a local cluster (minikube / kind):**
+  - Minikube: `minikube image load log-outout:latest`
+  - Kind: `kind load docker-image log-outout:latest`
+
+- **If using a remote registry (e.g., Docker Hub):**
   ```bash
-  docker tag log-output:latest <your-username>/log-output:v1.0.0
-  docker push <your-username>/log-output:v1.0.0
+  docker tag log-outout:latest <your-username>/log-outout:v1.0.0
+  docker push <your-username>/log-outout:v1.0.0
   ```
+  *(Remember to update the `image` field in `manifests/deployment.yaml` if using a remote registry tag)*
 
-* **If using a local cluster (`minikube` / `kind`):**
-  Load the built image directly:
-  * Minikube: `minikube image load log-output:latest`
-  * Kind: `kind load docker-image log-output:latest`
+### Step 2: Apply the Declarative Manifest
 
----
-
-### Step 2: Create the Deployment using Imperative Commands
-
-Run the following command to deploy the application directly from the CLI:
+Deploy the application using `kubectl apply`:
 
 ```bash
-kubectl create deployment log-output --image=log-output:latest --replicas=1
+kubectl apply -f manifests/deployment.yaml
 ```
 
-*(Note: If using a private registry or custom image tag, substitute `log-output:latest` with `<your-username>/log-output:v1.0.0`)*
-
----
-
-### Step 3: Check Logs & Status
+### Step 3: Check Status, Restart, and View Logs
 
 1. **Verify the Pod is running:**
    ```bash
    kubectl get pods -l app=log-output
    ```
 
-2. **View the live logs (outputs the stored random string every 5 seconds):**
+2. **View live logs (outputs the stored random string every 5 seconds):**
    ```bash
    kubectl logs -f deployment/log-output
    ```
-
    **Example Output:**
    ```text
-   [2026-11-04T21:20:00.000000+00:00] App initialized with string: k9X2pQ8mR1aZ
-   [2026-11-04T21:20:00.000123+00:00] Stored String: k9X2pQ8mR1aZ
-   [2026-11-04T21:20:05.001456+00:00] Stored String: k9X2pQ8mR1aZ
-   [2026-11-04T21:20:10.002890+00:00] Stored String: k9X2pQ8mR1aZ
+   [2026-11-04T22:15:00.000000Z]: 8523ecb1-c716-4cb6-a044-b9e83bb98e43
+   [2026-11-04T22:15:05.000000Z]: 8523ecb1-c716-4cb6-a044-b9e83bb98e43
    ```
 
-3. **Clean Up:**
-   To delete the deployment when you're finished:
+3. **Restart the Deployment (to test new startup string generation):**
    ```bash
-   kubectl delete deployment log-output
+   kubectl rollout restart deployment/log-output
+   ```
+
+4. **Clean Up:**
+   To delete the deployment and clean up resources:
+   ```bash
+   kubectl delete -f manifests/deployment.yaml
    ```
