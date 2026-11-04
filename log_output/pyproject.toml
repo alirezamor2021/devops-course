@@ -1,0 +1,7 @@
+[project]
+name = "random-string-app"
+version = "0.1.0"
+description = "Outputs a stored random string every 5 seconds with a timestamp"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
