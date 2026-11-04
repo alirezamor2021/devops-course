@@ -1,22 +1,36 @@
-# Todo App (Exercise 1.02)
+# Todo App 
 
-A lightweight Python 3.14 web server managed by `uv` that listens on a configurable `PORT` environment variable and outputs `"Server started in port NNNN"` upon startup.
+A lightweight Python 3.14 web server managed by `uv` that listens on a configurable `PORT` environment variable, outputs `"Server started in port NNNN"` upon startup, and is deployed declaratively in Kubernetes.
+
+---
+
+## Directory Structure
+
+```text
+the_project/todo-app/
+├── manifests/
+│   └── deployment.yaml
+├── Dockerfile
+├── main.py
+├── pyproject.toml
+└── README.md
+```
 
 ---
 
 ## Prerequisites
 
-* [uv](https://docs.astral.sh/uv/) installed locally
-* [Docker](https://www.docker.com/) installed
-* A Kubernetes cluster (`minikube`, `k3d`, `kind`, or a cloud cluster) with `kubectl` configured
+- [uv](https://docs.astral.sh/uv/) installed locally
+- [Docker](https://www.docker.com/) installed
+- A Kubernetes cluster (`minikube`, `k3d`, `kind`, or a cloud cluster) with `kubectl` configured
 
 ---
 
 ## Local Development (with `uv`)
 
-1. **Navigate to the application directory:**
+1. **Initialize and Install Dependencies:**
    ```bash
-   cd the_project/todo-app
+   uv sync
    ```
 
 2. **Run locally using default PORT (5000):**
@@ -45,71 +59,66 @@ A lightweight Python 3.14 web server managed by `uv` that listens on a configura
 
 ---
 
-## Running in Kubernetes via kubectl
+## Running in Kubernetes Declaratively
 
 ### Step 1: Make Image Available to Your Cluster
 
-* **If using a local cluster (minikube / kind):**
-  * Minikube: `minikube image load todo-app:latest`
-  * Kind: `kind load docker-image todo-app:latest`
-
-* **If using a remote registry (e.g., Docker Hub):**
+- **If using a local cluster (minikube / kind):**
+  - **Minikube:** `minikube image load todo-app:latest`
+  - **Kind:** `kind load docker-image todo-app:latest`
+- **If using a remote registry (e.g., Docker Hub):**
   ```bash
   docker tag todo-app:latest <your-username>/todo-app:v1.0.0
   docker push <your-username>/todo-app:v1.0.0
   ```
+  *(Remember to update the `image` field in `manifests/deployment.yaml` if using a remote registry tag).*
 
-### Step 2: Create the Deployment using Imperative Commands
+### Step 2: Apply the Declarative Manifest
 
-Run the following command to deploy the web server directly from the CLI:
-
+Deploy the web server using `kubectl apply`:
 ```bash
-kubectl create deployment todo-app --image=todo-app:latest --replicas=1
+kubectl apply -f manifests/deployment.yaml
 ```
-*(Note: If using a private registry or custom tag, replace `--image=todo-app:latest` with `<your-username>/todo-app:v1.0.0`)*
 
----
+### Step 3: Check Status, Logs, and Testing
 
-## Monitoring, Accessing, and Testing
-
-1. **Check Pod Status**  
-   Verify that your deployment is running successfully:
+1. **Verify the Pod is running:**
    ```bash
    kubectl get pods -l app=todo-app
    ```
 
-2. **View Startup Logs**  
-   Check the application logs to confirm the startup message:
+2. **View startup logs:**
    ```bash
    kubectl logs -f deployment/todo-app
    ```
    **Expected Output:**
-   ```text
+   ```plaintext
    Server started in port 5000
    ```
 
-3. **Port-Forward to Test the Web Server Locally**  
-   Since the application is running inside a container in Kubernetes, you can use port-forwarding to route traffic from your machine directly to the pod/deployment:
+3. **Port-Forward to Test Locally:**
+   Route traffic from your local machine to the Kubernetes pod:
    ```bash
    kubectl port-forward deployment/todo-app 5000:5000
    ```
 
-4. **Test the Endpoint via curl**  
-   Open a separate terminal window while port-forwarding is running and test the server response:
+4. **Test the Endpoint via curl:**
+   Open a separate terminal window and run:
    ```bash
    curl http://localhost:5000
    ```
    **Expected Response:**
-   ```text
+   ```plaintext
    Todo app is running!
    ```
 
----
+5. **Restart the Deployment (Rollout Restart):**
+   ```bash
+   kubectl rollout restart deployment/todo-app
+   ```
 
-## Clean Up
-
-To delete the deployment and clean up resources when finished:
-
-```bash
-kubectl delete deployment todo-app
-```
+6. **Clean Up:**
+   To delete the deployment and clean up resources using the manifest:
+   ```bash
+   kubectl delete -f manifests/deployment.yaml
+   ```
