@@ -1,0 +1,7 @@
+[project]
+name = "todo-app"
+version = "0.1.0"
+description = "A simple web server for the todo application"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
