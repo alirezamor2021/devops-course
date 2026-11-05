@@ -11,3 +11,4 @@
 - [1.5.](https://github.com/alirezamor2021/devops-course/tree/1.5)
 - [1.6.](https://github.com/alirezamor2021/devops-course/tree/1.6)
 - [1.7.](https://github.com/alirezamor2021/devops-course/tree/1.7)
+- [1.8.](https://github.com/alirezamor2021/devops-course/tree/1.8)
