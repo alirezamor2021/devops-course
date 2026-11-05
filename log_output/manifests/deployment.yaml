@@ -18,6 +18,11 @@ spec:
       - name: log-output
         image: alirezamor2021/log-output:v1.0.1
         imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+        env:
+        - name: PORT
+          value: "5000"
         resources:
           limits:
             memory: "64Mi"
