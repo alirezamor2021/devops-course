@@ -96,10 +96,10 @@ kubectl apply -f manifests/deployment.yaml
    Server started in port 5000
    ```
 
-3. **Port-Forward to Test Locally:**
-   Route traffic from your local machine to the Kubernetes pod:
+3. **Run svc to Test Locally:**
+   You can create service to enable nodeport:
    ```bash
-   kubectl port-forward deployment/todo-app 5000:5000
+   kubectl apply -f manifests/service.yaml
    ```
 
 4. **Test the Endpoint via curl:**
@@ -111,6 +111,7 @@ kubectl apply -f manifests/deployment.yaml
    ```plaintext
    Todo app is running!
    ```
+
 
 5. **Restart the Deployment (Rollout Restart):**
    ```bash
