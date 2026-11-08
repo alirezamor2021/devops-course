@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pingpong-dep
+  labels:
+    app: pingpong
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pingpong
+  template:
+    metadata:
+      labels:
+        app: pingpong
+    spec:
+      containers:
+        - name: pingpong
+          image: alirezamor2021/pingpong:v1  # Replace with your Docker image tag
+          ports:
+            - containerPort: 3000

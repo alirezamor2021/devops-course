@@ -1,0 +1,10 @@
+[project]
+name = "pingpong-app"
+version = "0.1.0"
+description = "A simple ping-pong counter app for Kubernetes exercises"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
+]
