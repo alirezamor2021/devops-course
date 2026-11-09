@@ -54,47 +54,60 @@ HTML_CONTENT = """<!DOCTYPE html>
             border-radius: 8px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
             width: 100%; 
-            max-width: 500px; 
+            max-width: 600px; 
             text-align: center;
         }
         h1 { 
             margin-top: 0; 
             color: #2c3e50; 
-            font-size: 28px; 
+            font-size: 32px; 
             margin-bottom: 20px; 
         }
+        h2 {
+            color: #2c3e50;
+            font-size: 22px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
         .image-container {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         .image-container img {
             width: 100%;
+            max-width: 400px;
             height: auto;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .input-group { 
             display: flex; 
             gap: 10px; 
-            margin-bottom: 20px; 
+            margin-bottom: 30px; 
+            justify-content: center;
         }
         input[type="text"] { 
-            flex: 1; 
-            padding: 10px; 
-            border: 1px solid #ddd; 
+            width: 70%; 
+            padding: 12px 15px; 
+            border: 1px solid #27ae60; 
             border-radius: 4px; 
-            font-size: 14px; 
+            font-size: 15px; 
+            outline: none;
+        }
+        input[type="text"]:focus {
+            box-shadow: 0 0 5px rgba(39, 174, 96, 0.4);
         }
         button { 
-            padding: 10px 15px; 
-            background: #3498db; 
+            padding: 12px 25px; 
+            background: #27ae60; 
             color: white; 
             border: none; 
             border-radius: 4px; 
             cursor: pointer; 
+            font-size: 15px;
             font-weight: bold; 
         }
         button:hover { 
-            background: #2980b9; 
+            background: #219653; 
         }
         ul { 
             list-style: none; 
@@ -102,19 +115,19 @@ HTML_CONTENT = """<!DOCTYPE html>
             text-align: left;
         }
         li { 
-            background: #f8f9fa; 
-            padding: 10px 15px; 
-            margin-bottom: 8px; 
+            background: #fff; 
+            padding: 15px 20px; 
+            margin-bottom: 12px; 
             border-radius: 4px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            border-left: 4px solid #3498db; 
-        }
-        .footer {
-            margin-top: 25px;
-            font-size: 14px;
-            color: #7f8c8d;
+            border-left: 5px solid #27ae60; 
+            border-top: 1px solid #eee;
+            border-right: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+            font-size: 16px;
         }
     </style>
 </head>
@@ -125,21 +138,21 @@ HTML_CONTENT = """<!DOCTYPE html>
             <img src="/image" alt="Random Daily Image">
         </div>
         <div class="input-group">
-            <input type="text" id="todoInput" placeholder="Add a new task...">
-            <button onclick="addTodo()">Add</button>
+            <input type="text" id="todoInput" maxlength="140" placeholder="Enter a new todo (max 140 characters)">
+            <button onclick="addTodo()">Send</button>
         </div>
+        <h2>Todos</h2>
         <ul id="todoList">
-            <li><span>Deploy app to Kubernetes</span></li>
+            <li><span>Learn Kubernetes basics</span></li>
+            <li><span>Deploy application to cluster</span></li>
+            <li><span>Configure persistent volumes</span></li>
         </ul>
-        <div class="footer">
-            DevOps with Kubernetes 2026
-        </div>
     </div>
     <script>
         function addTodo() {
             const input = document.getElementById('todoInput');
             const text = input.value.trim();
-            if (text) {
+            if (text && text.length <= 140) {
                 const ul = document.getElementById('todoList');
                 const li = document.createElement('li');
                 li.innerHTML = `<span>${text}</span>`;

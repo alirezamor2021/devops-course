@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: todo-app
-        image: alirezamor2021/todo-app:v2.0.0
+        image: alirezamor2021/todo-app:v2.1.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
