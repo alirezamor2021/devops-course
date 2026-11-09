@@ -2,8 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: todo-app
-  labels:
-    app: todo-app
 spec:
   replicas: 1
   selector:
@@ -16,17 +14,17 @@ spec:
     spec:
       containers:
       - name: todo-app
-        image: alirezamor2021/todo-app:v1.0.0
+        image: alirezamor2021/todo-app:v2.0.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
         env:
         - name: PORT
           value: "5000"
-        resources:
-          limits:
-            memory: "64Mi"
-            cpu: "100m"
-          requests:
-            memory: "32Mi"
-            cpu: "50m"
+        volumeMounts:
+        - name: shared-storage
+          mountPath: /shared
+      volumes:
+      - name: shared-storage
+        persistentVolumeClaim:
+          claimName: shared-pvc
