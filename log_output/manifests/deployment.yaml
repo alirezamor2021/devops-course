@@ -15,14 +15,13 @@ spec:
         app: log-output
     spec:
       containers:
-      - name: log-output
-        image: alirezamor2021/log-output:v1.0.1
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 5000
-        env:
-        - name: PORT
-          value: "5000"
+      # Container 1: The String Writer
+      - name: log-writer
+        image: alirezamor2021/log-output:v2.0.0
+        command: ["uv", "run", "python", "writer.py"]
+        volumeMounts:
+        - name: shared-logs
+          mountPath: /shared
         resources:
           limits:
             memory: "64Mi"
@@ -30,3 +29,28 @@ spec:
           requests:
             memory: "32Mi"
             cpu: "50m"
+
+      # Container 2: The HTTP Server Reader
+      - name: log-server
+        image: alirezamor2021/log-output:v2.0.0
+        command: ["uv", "run", "python", "server.py"]
+        ports:
+        - containerPort: 5000
+        env:
+        - name: PORT
+          value: "5000"
+        volumeMounts:
+        - name: shared-logs
+          mountPath: /shared
+        resources:
+          limits:
+            memory: "64Mi"
+            cpu: "100m"
+          requests:
+            memory: "32Mi"
+            cpu: "50m"
+
+      # Shared Volume for inter-container communication within the same Pod
+      volumes:
+      - name: shared-logs
+        emptyDir: {}
