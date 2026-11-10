@@ -140,26 +140,58 @@ HTML_CONTENT = """<!DOCTYPE html>
         <div class="input-group">
             <input type="text" id="todoInput" maxlength="140" placeholder="Enter a new todo (max 140 characters)">
             <button onclick="addTodo()">Send</button>
-        </div>
-        <h2>Todos</h2>
-        <ul id="todoList">
-            <li><span>Learn Kubernetes basics</span></li>
-            <li><span>Deploy application to cluster</span></li>
-            <li><span>Configure persistent volumes</span></li>
-        </ul>
+                <h2>Todos</h2>
+        <ul id="todoList"></ul>
+        <p id="error" style="color:#c0392b;"></p>
     </div>
     <script>
-        function addTodo() {
-            const input = document.getElementById('todoInput');
-            const text = input.value.trim();
-            if (text && text.length <= 140) {
-                const ul = document.getElementById('todoList');
+        const list = document.getElementById('todoList');
+        const input = document.getElementById('todoInput');
+        const errorEl = document.getElementById('error');
+
+        function render(todos) {
+            list.innerHTML = '';
+            for (const todo of todos) {
                 const li = document.createElement('li');
-                li.innerHTML = `<span>${text}</span>`;
-                ul.appendChild(li);
-                input.value = '';
+                const span = document.createElement('span');
+                span.textContent = todo.text;
+                li.appendChild(span);
+                list.appendChild(li);
             }
         }
+
+        async function loadTodos() {
+            try {
+                const res = await fetch('/todos');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                render(await res.json());
+                errorEl.textContent = '';
+            } catch (e) {
+                errorEl.textContent = 'Could not load todos.';
+            }
+        }
+
+        async function addTodo() {
+            const text = input.value.trim();
+            if (!text || text.length > 140) return;
+            try {
+                const res = await fetch('/todos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                input.value = '';
+                await loadTodos();
+            } catch (e) {
+                errorEl.textContent = 'Could not add todo.';
+            }
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') addTodo();
+        });
+        loadTodos();
     </script>
 </body>
 </html>
