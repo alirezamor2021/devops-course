@@ -2,7 +2,8 @@ import os
 import urllib.request
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-PING_PONG_URL = os.environ.get("PING_PONG_URL", "http://pingpong-svc:2345/pings")
+PING_PONG_URL = os.environ.get("PING_PONG_URL", "http://ping-pong-svc:2345/pings")
+CONFIG_FILE = os.environ.get("CONFIG_FILE", "/config/information.txt")
 
 def get_ping_count() -> str:
     try:
@@ -10,6 +11,14 @@ def get_ping_count() -> str:
             return resp.read().decode("utf-8").strip()
     except Exception as e:
         print(f"Failed to fetch pings: {e}", flush=True)
+        return "unavailable"
+
+def get_file_content() -> str:
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            return f.read().strip()
+    except Exception as e:
+        print(f"Failed to read {CONFIG_FILE}: {e}", flush=True)
         return "unavailable"
 
 class StatusHandler(BaseHTTPRequestHandler):

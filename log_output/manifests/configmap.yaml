@@ -1,0 +1,10 @@
+# manifests/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: log-output-config
+  namespace: exercises
+data:
+  MESSAGE: "hello world"
+  information.txt: |
+    this text is from file
