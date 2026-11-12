@@ -15,15 +15,44 @@ spec:
     spec:
       containers:
       - name: todo-backend
-        image: alirezamor2021/todo-backend:v1.1.0
+        image: alirezamor2021/todo-backend:v2.8.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
         env:
         - name: PORT
           value: "3000"
+        - name: DB_CONNECT_RETRIES
+          value: "30"
+        - name: DB_RETRY_DELAY_SECONDS
+          value: "2"
         - name: MAX_TODO_LENGTH
           valueFrom:
             configMapKeyRef:
               name: todo-config
               key: MAX_TODO_LENGTH
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: todo-db-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: todo-db-config
+              key: DB_PORT
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: todo-db-config
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: todo-db-config
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: todo-postgres-secret
+              key: POSTGRES_PASSWORD
