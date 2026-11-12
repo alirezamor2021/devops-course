@@ -15,14 +15,19 @@ spec:
     spec:
       containers:
       - name: log-writer
-        image: alirezamor2021/log-output:v3.0.0
+        image: alirezamor2021/log-output:v3.3.0
         command: ["uv", "run", "python", "writer.py"]
+        env:
+        - name: STATUS_FILE
+          value: "/shared/status.txt"
+        - name: WRITE_INTERVAL_SECONDS
+          value: "5"
         volumeMounts:
         - name: shared-storage
           mountPath: /shared
 
       - name: log-server
-        image: alirezamor2021/log-output:v3.0.0
+        image: alirezamor2021/log-output:v3.3.0
         command: ["uv", "run", "python", "server.py"]
         ports:
         - containerPort: 5000
@@ -31,6 +36,12 @@ spec:
           value: "5000"
         - name: PING_PONG_URL
           value: "http://ping-pong-svc:2345/pings"
+        - name: PING_TIMEOUT_SECONDS
+          value: "3"
+        - name: CONFIG_FILE
+          value: "/config/information.txt"
+        - name: STATUS_FILE
+          value: "/shared/status.txt"
         - name: MESSAGE
           valueFrom:
             configMapKeyRef:
@@ -39,11 +50,13 @@ spec:
         volumeMounts:
         - name: shared-storage
           mountPath: /shared
+        - name: config-volume
+          mountPath: /config
+          readOnly: true
 
       volumes:
       - name: shared-storage
-        persistentVolumeClaim:
-          claimName: shared-pvc
+        emptyDir: {}
       - name: config-volume
         configMap:
           name: log-output-config

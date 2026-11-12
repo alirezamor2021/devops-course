@@ -1,7 +1,19 @@
+import os
 import threading
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 import uvicorn
+
+
+def require_env(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
+PORT = int(require_env("PORT"))
+MAX_TODO_LENGTH = int(require_env("MAX_TODO_LENGTH"))
 
 app = FastAPI()
 
@@ -15,7 +27,7 @@ lock = threading.Lock()
 
 
 class TodoIn(BaseModel):
-    text: str = Field(min_length=1, max_length=140)
+    text: str = Field(min_length=1, max_length=MAX_TODO_LENGTH)
 
 
 @app.get("/todos")
@@ -35,4 +47,4 @@ def create_todo(body: TodoIn):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=3000)
+    uvicorn.run(app, host="0.0.0.0", port=PORT)

@@ -1,0 +1,8 @@
+# manifests/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-config
+  namespace: project
+data:
+  MAX_TODO_LENGTH: "140"

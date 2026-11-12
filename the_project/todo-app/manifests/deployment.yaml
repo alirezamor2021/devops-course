@@ -15,13 +15,26 @@ spec:
     spec:
       containers:
       - name: todo-app
-        image: alirezamor2021/todo-app:v2.1.0
+        image: alirezamor2021/todo-app:v2.2.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
         env:
         - name: PORT
           value: "5000"
+        - name: IMAGE_DIR
+          value: "/shared"
+        - name: IMAGE_URL
+          value: "https://picsum.photos/1200"
+        - name: CACHE_DURATION_SECONDS
+          value: "600"
+        - name: TODOS_URL
+          value: "/todos"
+        - name: MAX_TODO_LENGTH
+          valueFrom:
+            configMapKeyRef:
+              name: todo-config
+              key: MAX_TODO_LENGTH
         volumeMounts:
         - name: shared-storage
           mountPath: /shared

@@ -14,5 +14,16 @@ spec:
         app: todo-backend
     spec:
       containers:
-        - name: todo-backend
-          image: alirezamor2021/todo-backend:latest
+      - name: todo-backend
+        image: alirezamor2021/todo-backend:v1.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        env:
+        - name: PORT
+          value: "3000"
+        - name: MAX_TODO_LENGTH
+          valueFrom:
+            configMapKeyRef:
+              name: todo-config
+              key: MAX_TODO_LENGTH

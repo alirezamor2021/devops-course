@@ -15,14 +15,10 @@ spec:
     spec:
       containers:
       - name: pingpong
-        image: alirezamor2021/pingpong-app:v2.0.0
+        image: alirezamor2021/pingpong-app:v2.2.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
-        volumeMounts:
-        - name: shared-storage
-          mountPath: /shared
-      volumes:
-      - name: shared-storage
-        persistentVolumeClaim:
-          claimName: shared-pvc
+        env:
+        - name: PORT
+          value: "3000"

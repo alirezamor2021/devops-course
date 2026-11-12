@@ -3,11 +3,22 @@ import time
 import urllib.request
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-# Use shared volume if available, fallback to local directory for testing
-SHARED_DIR = "/shared" if os.path.exists("/shared") else "./shared"
-IMAGE_PATH = os.path.join(SHARED_DIR, "image.jpg")
-IMAGE_URL = "https://picsum.photos/1200"
-CACHE_DURATION = 10 * 60  # 10 minutes in seconds
+
+def require_env(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
+PORT = int(require_env("PORT"))
+IMAGE_DIR = require_env("IMAGE_DIR")
+IMAGE_URL = require_env("IMAGE_URL")
+CACHE_DURATION_SECONDS = int(require_env("CACHE_DURATION_SECONDS"))
+TODOS_URL = require_env("TODOS_URL")
+MAX_TODO_LENGTH = int(require_env("MAX_TODO_LENGTH"))
+
+IMAGE_PATH = os.path.join(IMAGE_DIR, "image.jpg")
 
 def get_cached_image():
     """Checks if the cached image is older than 10 minutes. If so, fetches a new one."""
@@ -138,13 +149,17 @@ HTML_CONTENT = """<!DOCTYPE html>
             <img src="/image" alt="Random Daily Image">
         </div>
         <div class="input-group">
-            <input type="text" id="todoInput" maxlength="140" placeholder="Enter a new todo (max 140 characters)">
+            <input type="text" id="todoInput" maxlength="__MAX_TODO_LENGTH__" placeholder="Enter a new todo (max __MAX_TODO_LENGTH__ characters)">
             <button onclick="addTodo()">Send</button>
-                <h2>Todos</h2>
+        </div>
+        <h2>Todos</h2>
         <ul id="todoList"></ul>
         <p id="error" style="color:#c0392b;"></p>
     </div>
+    </div>
     <script>
+        const TODOS_URL = "__TODOS_URL__";
+        const MAX_TODO_LENGTH = __MAX_TODO_LENGTH__;
         const list = document.getElementById('todoList');
         const input = document.getElementById('todoInput');
         const errorEl = document.getElementById('error');
@@ -162,7 +177,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
         async function loadTodos() {
             try {
-                const res = await fetch('/todos');
+                const res = await fetch(TODOS_URL);
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 render(await res.json());
                 errorEl.textContent = '';
@@ -173,9 +188,9 @@ HTML_CONTENT = """<!DOCTYPE html>
 
         async function addTodo() {
             const text = input.value.trim();
-            if (!text || text.length > 140) return;
+            if (!text || text.length > MAX_TODO_LENGTH) return;
             try {
-                const res = await fetch('/todos', {
+                const res = await fetch(TODOS_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text })
@@ -197,13 +212,18 @@ HTML_CONTENT = """<!DOCTYPE html>
 </html>
 """
 
+HTML_PAGE = (
+    HTML_CONTENT
+    .replace("__MAX_TODO_LENGTH__", str(MAX_TODO_LENGTH))
+    .replace("__TODOS_URL__", TODOS_URL)
+)
 class TodoHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/" or self.path == "":
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
-            self.wfile.write(HTML_CONTENT.encode("utf-8"))
+            self.wfile.write(HTML_PAGE.encode("utf-8"))
         elif self.path == "/image":
             img_path = get_cached_image()
             if os.path.exists(img_path):
@@ -224,17 +244,16 @@ class TodoHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
 
+
 def run() -> None:
-    port = int(os.environ.get("PORT", 5000))
-    server_address = ('', port)
-    httpd = HTTPServer(server_address, TodoHandler)
-    
-    print(f"Server started in port {port}", flush=True)
-    
+    httpd = HTTPServer(("", PORT), TodoHandler)
+    print(f"Server started in port {PORT}", flush=True)
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
+
 
 if __name__ == "__main__":
     run()
