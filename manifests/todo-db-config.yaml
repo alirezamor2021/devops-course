@@ -1,0 +1,11 @@
+# manifests/todo-db-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-db-config
+  namespace: project
+data:
+  POSTGRES_DB: "todos"
+  POSTGRES_USER: "todos"
+  DB_HOST: "todo-postgres-svc"
+  DB_PORT: "5432"
