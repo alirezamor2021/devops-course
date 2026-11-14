@@ -26,6 +26,10 @@ spec:
           value: "30"
         - name: DB_RETRY_DELAY_SECONDS
           value: "2"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: LOG_TEXT_PREVIEW_CHARS
+          value: "200"
         - name: MAX_TODO_LENGTH
           valueFrom:
             configMapKeyRef:
