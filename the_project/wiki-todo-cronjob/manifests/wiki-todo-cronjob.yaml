@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: wiki-todo
+  namespace: project
+spec:
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: wiki-todo
+            image: alirezamor2021/wiki-todo-cronjob:v1.0.0
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: WIKI_RANDOM_URL
+              value: "https://en.wikipedia.org/wiki/Special:Random"
+            - name: TODO_BACKEND_URL
+              value: "http://todo-backend-svc:2345/todos"
+            - name: MAX_ATTEMPTS
+              value: "10"
+            - name: REQUEST_TIMEOUT_SECONDS
+              value: "10"
+            - name: USER_AGENT
+              value: "kube-todo-reminder/1.0 (course exercise)"
+            - name: MAX_TODO_LENGTH
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-config
+                  key: MAX_TODO_LENGTH
