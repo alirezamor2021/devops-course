@@ -38,6 +38,10 @@ A lightweight Python 3.14 application managed by `uv` that generates a random st
    docker run --rm log-outout:latest
    ```
 
+**NB: Check the nodes CPU architecture and if they require diffrect cpu architecture use buildx:
+```bash
+docker buildx build --platform linux/amd64 -t alirezamor2021/pingpong:v2.2.0-amd64 --push .
+```
 ---
 
 ## Running in Kubernetes Declaratively

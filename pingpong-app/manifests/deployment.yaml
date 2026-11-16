@@ -1,3 +1,4 @@
+# manifests/pingpong.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,10 +16,16 @@ spec:
     spec:
       containers:
       - name: pingpong
-        image: alirezamor2021/pingpong:v2.2.0-amd64
-        imagePullPolicy: IfNotPresent
+        image: alirezamor2021/pingpong:v4.2.0-amd64
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
         env:
         - name: PORT
           value: "3000"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 3
+          periodSeconds: 5
