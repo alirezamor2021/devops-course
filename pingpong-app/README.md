@@ -42,6 +42,11 @@ docker build -t <your-docker-hub-username>/pingpong:v1 .
 docker push <your-docker-hub-username>/pingpong:v1
 ```
 
+**NB: Check the nodes CPU architecture and if they require diffrect cpu architecture use buildx:
+```bash
+docker buildx build --platform linux/amd64 -t alirezamor2021/pingpong:v2.2.0-amd64 --push .
+```
+
 *(Make sure to update the image tag in `manifests/deployment.yaml` if you use a different name).*
 
 ### 2. Apply Kubernetes Manifests
