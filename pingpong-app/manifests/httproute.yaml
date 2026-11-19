@@ -1,3 +1,4 @@
+# pingpong-app/manifests/httproute.yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -11,6 +12,12 @@ spec:
     - path:
         type: PathPrefix
         value: /pingpong
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
     backendRefs:
     - name: ping-pong-svc
       port: 2345

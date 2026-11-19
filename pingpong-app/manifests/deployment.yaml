@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: pingpong
-        image: alirezamor2021/pingpong:v4.2.0-amd64
+        image: alirezamor2021/pingpong:v4.4.0-amd64
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
@@ -25,7 +25,7 @@ spec:
           value: "3000"
         readinessProbe:
           httpGet:
-            path: /
+            path: /healthz
             port: 3000
           initialDelaySeconds: 3
           periodSeconds: 5

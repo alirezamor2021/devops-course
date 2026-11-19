@@ -1,3 +1,4 @@
+# pingpong-app/manifests/healthcheck.yaml
 apiVersion: networking.gke.io/v1
 kind: HealthCheckPolicy
 metadata:
@@ -8,7 +9,7 @@ spec:
     config:
       type: HTTP
       httpHealthCheck:
-        requestPath: /
+        requestPath: /healthz
         port: 3000
   targetRef:
     group: ""

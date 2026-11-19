@@ -19,7 +19,7 @@ counter = 0
 lock = threading.Lock()
 
 
-@app.get("/pingpong")
+@app.get("/")
 def ping_pong():
     global counter
     with lock:
@@ -34,8 +34,8 @@ def pings():
         return counter
 
 
-@app.get("/")
-def health():
+@app.get("/healthz")
+def healthz():
     return "ok"
 
 
