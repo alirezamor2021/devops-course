@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: project
+resources:
+  - manifests/namespace.yaml
+  - manifests/persistent-volume-claim.yaml
+  - manifests/todo-db-config.yaml
+  - manifests/todo-postgres.yaml
+  - todo-app/manifests/configmap.yaml
+  - todo-app/manifests/deployment.yaml
+  - todo-app/manifests/service.yaml
+  - todo-app/manifests/healthcheck.yaml
+  - todo-backend/manifests/deployment.yaml
+  - todo-backend/manifests/service.yaml
+  - todo-backend/manifests/healthcheck.yaml
+  - manifests/gateway.yaml
+  - manifests/httproute.yaml
+  - wiki-todo-cronjob/manifests/wiki-todo-cronjob.yaml
+images:
+  - name: alirezamor2021/todo-app
+    newTag: v4.5.1-amd64
+  - name: alirezamor2021/todo-backend
+    newTag: v4.5.0-amd64
+  - name: alirezamor2021/wiki-todo-cronjob
+    newTag: v4.5.0-amd64

@@ -19,6 +19,12 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
+        readinessProbe:
+          httpGet:
+            path: /todos
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
         env:
         - name: PORT
           value: "3000"

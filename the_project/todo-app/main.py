@@ -22,14 +22,14 @@ IMAGE_PATH = os.path.join(IMAGE_DIR, "image.jpg")
 
 def get_cached_image():
     """Checks if the cached image is older than 10 minutes. If so, fetches a new one."""
-    os.makedirs(SHARED_DIR, exist_ok=True)
+    os.makedirs(IMAGE_DIR, exist_ok=True)
     
     fetch_new = False
     if not os.path.exists(IMAGE_PATH):
         fetch_new = True
     else:
         file_age = time.time() - os.path.getmtime(IMAGE_PATH)
-        if file_age > CACHE_DURATION:
+        if file_age > CACHE_DURATION_SECONDS:
             fetch_new = True
 
     if fetch_new:
