@@ -1,0 +1,89 @@
+name: Release application
+
+on:
+  push:
+    paths:
+      - "the_project/**"
+      - ".github/workflows/main.yaml"
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: dwk-cluster
+  GKE_ZONE: europe-north1-b
+  REGISTRY: europe-north1-docker.pkg.dev
+  REPOSITORY: my-repository
+  BRANCH: ${{ github.ref_name }}
+
+jobs:
+  build-publish-deploy:
+    name: Build, Publish and Deploy
+    runs-on: ubuntu-latest
+    environment: GKE_PROJECT
+    env:
+      SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: "${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}"
+          service_account: "${{ secrets.SERVICE_ACCOUNT }}"
+
+      - name: 'Set up Cloud SDK'
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: 'Use gcloud CLI'
+        run: gcloud info
+
+      - run: gcloud --quiet auth configure-docker $REGISTRY
+
+      - name: 'Get GKE credentials'
+        uses: 'google-github-actions/get-gke-credentials@v3'
+        with:
+          cluster_name: '${{ env.GKE_CLUSTER }}'
+          project_id: '${{ env.PROJECT_ID }}'
+          location: '${{ env.GKE_ZONE }}'
+
+      - name: 'Form the image prefix and tag'
+        run: |
+          echo "IMAGE_PREFIX=$REGISTRY/$PROJECT_ID/$REPOSITORY" >> $GITHUB_ENV
+          echo "TAG=${BRANCH//\//-}-$GITHUB_SHA" >> $GITHUB_ENV
+
+      - name: Build and publish images
+        working-directory: the_project
+        run: |
+          for app in todo-app todo-backend wiki-todo-cronjob; do
+            docker build --tag "$IMAGE_PREFIX/$app:$TAG" "$app"
+            docker push "$IMAGE_PREFIX/$app:$TAG"
+          done
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Apply database secret
+        if: ${{ env.SOPS_AGE_KEY != '' }}
+        working-directory: the_project
+        run: |
+          curl -sSLo sops https://github.com/getsops/sops/releases/download/v3.10.2/sops-v3.10.2.linux.amd64
+          chmod +x sops
+          kubectl apply -f manifests/namespace.yaml
+          ./sops --decrypt secrets/todo-postgres-secret.enc.yaml | kubectl apply -f -
+          rm sops
+
+      - name: Deploy
+        working-directory: the_project
+        run: |
+          for app in todo-app todo-backend wiki-todo-cronjob; do
+            kustomize edit set image "alirezamor2021/$app=$IMAGE_PREFIX/$app:$TAG"
+          done
+          kustomize build . | kubectl apply -f -
+          kubectl -n project rollout status statefulset/todo-postgres-ss --timeout=300s
+          kubectl -n project rollout status deployment/todo-backend-dep --timeout=300s
+          kubectl -n project rollout status deployment/todo-app --timeout=300s
+          kubectl -n project get pods,services,gateway,httproute
