@@ -18,6 +18,10 @@ env:
   REPOSITORY: my-repository
   BRANCH: ${{ github.ref_name }}
 
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   build-publish-deploy:
     name: Build, Publish and Deploy
@@ -54,6 +58,11 @@ jobs:
         run: |
           echo "IMAGE_PREFIX=$REGISTRY/$PROJECT_ID/$REPOSITORY" >> $GITHUB_ENV
           echo "TAG=${BRANCH//\//-}-$GITHUB_SHA" >> $GITHUB_ENV
+          if [ "$BRANCH" = "main" ]; then
+            echo "NAMESPACE=project" >> $GITHUB_ENV
+          else
+            echo "NAMESPACE=$BRANCH" >> $GITHUB_ENV
+          fi
 
       - name: Build and publish images
         working-directory: the_project
@@ -66,15 +75,28 @@ jobs:
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v2
 
+      - name: Create namespace
+        run: kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Apply database secret
-        if: ${{ env.SOPS_AGE_KEY != '' }}
         working-directory: the_project
         run: |
-          curl -sSLo sops https://github.com/getsops/sops/releases/download/v3.10.2/sops-v3.10.2.linux.amd64
-          chmod +x sops
-          kubectl apply -f manifests/namespace.yaml
-          ./sops --decrypt secrets/todo-postgres-secret.enc.yaml | kubectl apply -f -
-          rm sops
+          if [ -n "$SOPS_AGE_KEY" ]; then
+            curl -sSLo sops https://github.com/getsops/sops/releases/download/v3.10.2/sops-v3.10.2.linux.amd64
+            chmod +x sops
+            ./sops --decrypt secrets/todo-postgres-secret.enc.yaml \
+              | sed "s/^\([[:space:]]*namespace:\).*/\1 $NAMESPACE/" \
+              | kubectl apply -f -
+            rm sops
+          elif [ "$NAMESPACE" != "project" ]; then
+            # No age key in CI: reuse the secret already in the main environment.
+            kubectl -n project get secret todo-postgres-secret -o yaml \
+              | sed -e "s/^\([[:space:]]*namespace:\).*/\1 $NAMESPACE/" \
+                    -e '/^[[:space:]]*resourceVersion:/d' \
+                    -e '/^[[:space:]]*uid:/d' \
+                    -e '/^[[:space:]]*creationTimestamp:/d' \
+              | kubectl apply -f -
+          fi
 
       - name: Deploy
         working-directory: the_project
@@ -82,8 +104,9 @@ jobs:
           for app in todo-app todo-backend wiki-todo-cronjob; do
             kustomize edit set image "alirezamor2021/$app=$IMAGE_PREFIX/$app:$TAG"
           done
+          kustomize edit set namespace "$NAMESPACE"
           kustomize build . | kubectl apply -f -
-          kubectl -n project rollout status statefulset/todo-postgres-ss --timeout=300s
-          kubectl -n project rollout status deployment/todo-backend-dep --timeout=300s
-          kubectl -n project rollout status deployment/todo-app --timeout=300s
-          kubectl -n project get pods,services,gateway,httproute
+          kubectl -n "$NAMESPACE" rollout status statefulset/todo-postgres-ss --timeout=300s
+          kubectl -n "$NAMESPACE" rollout status deployment/todo-backend-dep --timeout=300s
+          kubectl -n "$NAMESPACE" rollout status deployment/todo-app --timeout=300s
+          kubectl -n "$NAMESPACE" get pods,services,gateway,httproute
