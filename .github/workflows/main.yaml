@@ -2,6 +2,9 @@ name: Release application
 
 on:
   push:
+    # Only branches: tag pushes (releases like 3.7) must not deploy.
+    branches:
+      - "**"
     paths:
       - "the_project/**"
       - ".github/workflows/main.yaml"
