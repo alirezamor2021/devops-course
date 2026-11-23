@@ -18,6 +18,13 @@ spec:
           - name: wiki-todo
             image: alirezamor2021/wiki-todo-cronjob:v1.0.0
             imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: "10m"
+                memory: "32Mi"
+              limits:
+                cpu: "100m"
+                memory: "64Mi"
             env:
             - name: WIKI_RANDOM_URL
               value: "https://en.wikipedia.org/wiki/Special:Random"

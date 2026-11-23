@@ -25,6 +25,13 @@ spec:
           initContainers:
           - name: pg-dump
             image: postgres:16
+            resources:
+              requests:
+                cpu: "50m"
+                memory: "64Mi"
+              limits:
+                cpu: "250m"
+                memory: "128Mi"
             env:
             - name: PGHOST
               valueFrom:
@@ -63,6 +70,13 @@ spec:
           containers:
           - name: upload
             image: gcr.io/google.com/cloudsdktool/google-cloud-cli:stable
+            resources:
+              requests:
+                cpu: "100m"
+                memory: "128Mi"
+              limits:
+                cpu: "500m"
+                memory: "256Mi"
             env:
             - name: BUCKET
               value: "devops-513709-todo-backups"

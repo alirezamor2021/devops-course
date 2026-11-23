@@ -19,6 +19,13 @@ spec:
       - name: todo-app
         image: alirezamor2021/todo-app:v2.2.0
         imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "250m"
+            memory: "128Mi"
         ports:
         - containerPort: 5000
         env:
