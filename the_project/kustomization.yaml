@@ -16,6 +16,7 @@ resources:
   - manifests/gateway.yaml
   - manifests/httproute.yaml
   - wiki-todo-cronjob/manifests/wiki-todo-cronjob.yaml
+  - db-backup-cronjob/manifests/db-backup-cronjob.yaml
 images:
   - name: alirezamor2021/todo-app
     newTag: v4.5.1-amd64

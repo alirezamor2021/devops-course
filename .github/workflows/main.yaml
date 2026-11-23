@@ -101,6 +101,20 @@ jobs:
               | kubectl apply -f -
           fi
 
+      - name: Copy backup storage key to branch environment
+        if: env.NAMESPACE != 'project'
+        run: |
+          # storage-sa-key is created by hand in the "project" namespace only.
+          # Branch environments reuse it so their backup CronJob can run.
+          if kubectl -n project get secret storage-sa-key >/dev/null 2>&1; then
+            kubectl -n project get secret storage-sa-key -o yaml \
+              | sed -e "s/^\([[:space:]]*namespace:\).*/\1 $NAMESPACE/" \
+                    -e '/^[[:space:]]*resourceVersion:/d' \
+                    -e '/^[[:space:]]*uid:/d' \
+                    -e '/^[[:space:]]*creationTimestamp:/d' \
+              | kubectl apply -f -
+          fi
+
       - name: Deploy
         working-directory: the_project
         run: |

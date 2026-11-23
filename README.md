@@ -94,3 +94,5 @@ NB: Docker images version is like {CHAPTER}.{EXERCISE_NUMBER}.0
 ## Conclusion
 
 DBaaS is the better default for small teams or teams without dedicated DBA/DevOps capacity: higher monthly cost, but much lower setup, maintenance and backup risk. DIY makes sense when costs at scale dominate, when custom engine features or full control are required, or when avoiding vendor lock-in is a priority, provided the team can operate it reliably.
+
+- [3.10](https://github.com/alirezamor2021/devops-course/tree/3.10)

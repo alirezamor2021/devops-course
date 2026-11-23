@@ -1,0 +1,95 @@
+# Daily backup of the todo database to Google Cloud Storage.
+#
+# 1. initContainer (postgres:16) runs pg_dump into a shared emptyDir.
+# 2. main container (google-cloud-cli) uploads the dump to the bucket,
+#    authenticating with the service-account key in the "storage-sa-key"
+#    Secret. The Secret is created by hand (see README); never commit it.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: todo-db-backup
+  namespace: project
+spec:
+  schedule: "0 3 * * *"          # once every 24 hours, 03:00 UTC
+  timeZone: "Etc/UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          initContainers:
+          - name: pg-dump
+            image: postgres:16
+            env:
+            - name: PGHOST
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-db-config
+                  key: DB_HOST
+            - name: PGPORT
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-db-config
+                  key: DB_PORT
+            - name: PGDATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-db-config
+                  key: POSTGRES_DB
+            - name: PGUSER
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-db-config
+                  key: POSTGRES_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: todo-postgres-secret
+                  key: POSTGRES_PASSWORD
+            command: ["sh", "-c"]
+            args:
+            - |
+              set -eu
+              pg_dump --no-owner --no-privileges | gzip > /backup/dump.sql.gz
+              ls -l /backup/dump.sql.gz
+            volumeMounts:
+            - name: backup
+              mountPath: /backup
+          containers:
+          - name: upload
+            image: gcr.io/google.com/cloudsdktool/google-cloud-cli:stable
+            env:
+            - name: BUCKET
+              value: "devops-513709-todo-backups"
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CLOUDSDK_CORE_PROJECT
+              value: "devops-513709"
+            command: ["sh", "-c"]
+            args:
+            - |
+              set -eu
+              gcloud auth activate-service-account --key-file=/var/secrets/google/key.json
+              OBJECT="gs://$BUCKET/$NAMESPACE/todos-$(date -u +%Y-%m-%dT%H%M%SZ).sql.gz"
+              gcloud storage cp /backup/dump.sql.gz "$OBJECT"
+              echo "Uploaded $OBJECT"
+            volumeMounts:
+            - name: backup
+              mountPath: /backup
+              readOnly: true
+            - name: storage-sa-key
+              mountPath: /var/secrets/google
+              readOnly: true
+          volumes:
+          - name: backup
+            emptyDir: {}
+          - name: storage-sa-key
+            secret:
+              secretName: storage-sa-key
