@@ -97,4 +97,4 @@ DBaaS is the better default for small teams or teams without dedicated DBA/DevOp
 
 - [3.10](https://github.com/alirezamor2021/devops-course/tree/3.10)
 - [3.11](https://github.com/alirezamor2021/devops-course/tree/3.11)
-- 3.12: [GKE logs for the project](the_project/LOGGING.md)
+- [3.12](https://github.com/alirezamor2021/devops-course/tree/3.12) [GKE logs for the project](the_project/LOGGING.md)
