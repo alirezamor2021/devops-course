@@ -43,6 +43,7 @@ NB: Docker images version is like {CHAPTER}.{EXERCISE_NUMBER}.0
 - [3.7](https://github.com/alirezamor2021/devops-course/tree/3.7)
 - [3.8](https://github.com/alirezamor2021/devops-course/tree/3.8)
 - [3.9](https://github.com/alirezamor2021/devops-course/tree/3.9)
+- 3.12: [GKE logs for the project](the_project/LOGGING.md)
 
 # DBaaS vs. Self-Managed (DIY) Database
 
