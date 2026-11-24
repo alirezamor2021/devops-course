@@ -28,6 +28,21 @@ spec:
             memory: "128Mi"
         ports:
         - containerPort: 5000
+        # Ready only when the backend (and so the database) is ready.
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 4
+        livenessProbe:
+          httpGet:
+            path: /livez
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
         env:
         - name: PORT
           value: "5000"
@@ -39,6 +54,12 @@ spec:
           value: "600"
         - name: TODOS_URL
           value: "/todos"
+        - name: BREAK_URL
+          value: "/break"
+        - name: BACKEND_HEALTH_URL
+          value: "http://todo-backend-svc:2345/healthz"
+        - name: HEALTH_TIMEOUT_SECONDS
+          value: "3"
         - name: MAX_TODO_LENGTH
           valueFrom:
             configMapKeyRef:

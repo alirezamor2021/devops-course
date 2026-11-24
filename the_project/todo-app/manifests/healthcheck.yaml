@@ -8,7 +8,7 @@ spec:
     config:
       type: HTTP
       httpHealthCheck:
-        requestPath: /
+        requestPath: /healthz
         port: 5000
   targetRef:
     group: ""

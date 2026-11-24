@@ -17,6 +17,9 @@ IMAGE_URL = require_env("IMAGE_URL")
 CACHE_DURATION_SECONDS = int(require_env("CACHE_DURATION_SECONDS"))
 TODOS_URL = require_env("TODOS_URL")
 MAX_TODO_LENGTH = int(require_env("MAX_TODO_LENGTH"))
+BREAK_URL = require_env("BREAK_URL")
+BACKEND_HEALTH_URL = require_env("BACKEND_HEALTH_URL")
+HEALTH_TIMEOUT_SECONDS = float(require_env("HEALTH_TIMEOUT_SECONDS"))
 
 IMAGE_PATH = os.path.join(IMAGE_DIR, "image.jpg")
 
@@ -120,6 +123,14 @@ HTML_CONTENT = """<!DOCTYPE html>
         button:hover { 
             background: #219653; 
         }
+        button.danger {
+            background: #d9534f;
+            font-weight: normal;
+            margin-top: 20px;
+        }
+        button.danger:hover {
+            background: #c9302c;
+        }
         ul { 
             list-style: none; 
             padding: 0; 
@@ -155,11 +166,12 @@ HTML_CONTENT = """<!DOCTYPE html>
         <h2>Todos</h2>
         <ul id="todoList"></ul>
         <p id="error" style="color:#c0392b;"></p>
-    </div>
+        <button class="danger" onclick="breakApp()">break the app</button>
     </div>
     <script>
         const TODOS_URL = "__TODOS_URL__";
         const MAX_TODO_LENGTH = __MAX_TODO_LENGTH__;
+        const BREAK_URL = "__BREAK_URL__";
         const list = document.getElementById('todoList');
         const input = document.getElementById('todoInput');
         const errorEl = document.getElementById('error');
@@ -203,6 +215,16 @@ HTML_CONTENT = """<!DOCTYPE html>
             }
         }
 
+        async function breakApp() {
+            try {
+                const res = await fetch(BREAK_URL, { method: 'POST' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                errorEl.textContent = 'The app is broken. Kubernetes should restart it shortly.';
+            } catch (e) {
+                errorEl.textContent = 'Could not break the app.';
+            }
+        }
+
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') addTodo();
         });
@@ -216,10 +238,36 @@ HTML_PAGE = (
     HTML_CONTENT
     .replace("__MAX_TODO_LENGTH__", str(MAX_TODO_LENGTH))
     .replace("__TODOS_URL__", TODOS_URL)
+    .replace("__BREAK_URL__", BREAK_URL)
 )
+
+
+def backend_is_ready() -> bool:
+    """The frontend is only useful when the backend can reach its database."""
+    try:
+        with urllib.request.urlopen(BACKEND_HEALTH_URL, timeout=HEALTH_TIMEOUT_SECONDS) as resp:
+            return resp.status == 200
+    except Exception as e:
+        print(f"Backend health check failed: {e}", flush=True)
+        return False
+
+
 class TodoHandler(BaseHTTPRequestHandler):
+    def send_text(self, code: int, text: str) -> None:
+        self.send_response(code)
+        self.send_header("Content-type", "text/plain; charset=utf-8")
+        self.end_headers()
+        self.wfile.write(text.encode("utf-8"))
+
     def do_GET(self):
-        if self.path == "/" or self.path == "":
+        if self.path == "/livez":
+            self.send_text(200, "ok")
+        elif self.path == "/healthz":
+            if backend_is_ready():
+                self.send_text(200, "ok")
+            else:
+                self.send_text(503, "backend unavailable")
+        elif self.path == "/" or self.path == "":
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()

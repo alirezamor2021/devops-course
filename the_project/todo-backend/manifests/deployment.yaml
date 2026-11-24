@@ -26,19 +26,29 @@ spec:
             memory: "128Mi"
         ports:
         - containerPort: 3000
+        # Ready only when the database is reachable.
         readinessProbe:
           httpGet:
-            path: /todos
+            path: /healthz
             port: 3000
           initialDelaySeconds: 5
           periodSeconds: 5
+          timeoutSeconds: 4
+          failureThreshold: 2
+        # Restarts the container once the app has been "broken" via POST /break.
+        livenessProbe:
+          httpGet:
+            path: /livez
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
         env:
         - name: PORT
           value: "3000"
-        - name: DB_CONNECT_RETRIES
-          value: "30"
-        - name: DB_RETRY_DELAY_SECONDS
-          value: "2"
+        - name: DB_TIMEOUT_SECONDS
+          value: "3"
         - name: LOG_LEVEL
           value: "INFO"
         - name: LOG_TEXT_PREVIEW_CHARS

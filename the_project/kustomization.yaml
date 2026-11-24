@@ -19,8 +19,8 @@ resources:
   - db-backup-cronjob/manifests/db-backup-cronjob.yaml
 images:
   - name: alirezamor2021/todo-app
-    newTag: v4.5.1-amd64
+    newTag: v5.2.0-amd64
   - name: alirezamor2021/todo-backend
-    newTag: v4.5.0-amd64
+    newTag: v5.2.0-amd64
   - name: alirezamor2021/wiki-todo-cronjob
     newTag: v4.5.0-amd64

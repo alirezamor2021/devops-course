@@ -2,11 +2,12 @@
 import logging
 import os
 import sys
-import time
+import threading
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from psycopg.conninfo import make_conninfo
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
@@ -27,8 +28,7 @@ DB_PORT = require_env("DB_PORT")
 DB_NAME = require_env("POSTGRES_DB")
 DB_USER = require_env("POSTGRES_USER")
 DB_PASSWORD = require_env("POSTGRES_PASSWORD")
-DB_CONNECT_RETRIES = int(require_env("DB_CONNECT_RETRIES"))
-DB_RETRY_DELAY_SECONDS = float(require_env("DB_RETRY_DELAY_SECONDS"))
+DB_TIMEOUT_SECONDS = float(require_env("DB_TIMEOUT_SECONDS"))
 LOG_LEVEL = require_env("LOG_LEVEL")
 LOG_TEXT_PREVIEW_CHARS = int(require_env("LOG_TEXT_PREVIEW_CHARS"))
 
@@ -52,38 +52,82 @@ pool = ConnectionPool(
     min_size=1,
     max_size=5,
     open=False,
-    kwargs={"row_factory": dict_row},
+    timeout=DB_TIMEOUT_SECONDS,
+    kwargs={"row_factory": dict_row, "connect_timeout": max(1, int(DB_TIMEOUT_SECONDS))},
 )
 
+# Set to False by POST /break. The liveness probe then fails and Kubernetes
+# restarts the container, which starts healthy again.
+is_healthy = True
 
-def init_db() -> None:
-    """Create the table, retrying until the database accepts connections."""
-    for attempt in range(1, DB_CONNECT_RETRIES + 1):
-        try:
-            with pool.connection() as conn:
-                conn.execute(
-                    "CREATE TABLE IF NOT EXISTS todos ("
-                    "id SERIAL PRIMARY KEY, "
-                    "text TEXT NOT NULL)"
-                )
-            log.info("Database ready")
+_schema_ready = False
+_schema_lock = threading.Lock()
+
+
+def ensure_schema() -> None:
+    """Create the table once the database is reachable. Raises if it is not."""
+    global _schema_ready
+    if _schema_ready:
+        return
+    with _schema_lock:
+        if _schema_ready:
             return
-        except Exception as e:
-            log.warning("DB not ready (attempt %d/%d): %s", attempt, DB_CONNECT_RETRIES, e)
-            time.sleep(DB_RETRY_DELAY_SECONDS)
-    raise RuntimeError("Could not connect to the database")
+        with pool.connection() as conn:
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS todos ("
+                "id SERIAL PRIMARY KEY, "
+                "text TEXT NOT NULL)"
+            )
+        _schema_ready = True
+        log.info("Database ready")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Don't block startup on the database: the readiness probe keeps the pod
+    # out of the Service until /healthz can reach it.
     pool.open(wait=False)
-    init_db()
     log.info("Backend started on port %d, todo limit %d characters", PORT, MAX_TODO_LENGTH)
     yield
     pool.close()
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.middleware("http")
+async def broken_guard(request: Request, call_next):
+    """Once broken, every endpoint (probes included) fails."""
+    if not is_healthy:
+        return JSONResponse(status_code=500, content={"status": "unhealthy"})
+    return await call_next(request)
+
+
+@app.get("/livez")
+def livez():
+    """Liveness: the process is serving and has not been broken."""
+    return {"status": "ok"}
+
+
+@app.get("/healthz")
+def healthz():
+    """Readiness: the database is reachable and the table exists."""
+    try:
+        ensure_schema()
+        with pool.connection() as conn:
+            conn.execute("SELECT 1")
+    except Exception as e:
+        log.warning("Readiness check failed: %s", e)
+        return JSONResponse(status_code=503, content={"status": "database unavailable"})
+    return {"status": "ok"}
+
+
+@app.post("/break")
+def break_app():
+    global is_healthy
+    is_healthy = False
+    log.warning("App broken on request; liveness probe will now fail")
+    return {"status": "broken"}
 
 
 class TodoIn(BaseModel):
@@ -99,6 +143,7 @@ def preview(text: str) -> str:
 
 @app.get("/todos")
 def get_todos():
+    ensure_schema()
     with pool.connection() as conn:
         rows = conn.execute("SELECT id, text FROM todos ORDER BY id").fetchall()
     log.info("Listed %d todos", len(rows))
@@ -123,6 +168,7 @@ def create_todo(body: TodoIn):
             detail=f"Todo must be at most {MAX_TODO_LENGTH} characters",
         )
 
+    ensure_schema()
     with pool.connection() as conn:
         todo = conn.execute(
             "INSERT INTO todos (text) VALUES (%s) RETURNING id, text",
