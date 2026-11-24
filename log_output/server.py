@@ -18,10 +18,15 @@ STATUS_FILE = require_env("STATUS_FILE")
 MESSAGE = require_env("MESSAGE")
 
 
+def fetch_ping_count() -> str:
+    """Fetch the ping count from the Ping-pong app; raises on any failure."""
+    with urllib.request.urlopen(PING_PONG_URL, timeout=PING_TIMEOUT_SECONDS) as resp:
+        return resp.read().decode("utf-8").strip()
+
+
 def get_ping_count() -> str:
     try:
-        with urllib.request.urlopen(PING_PONG_URL, timeout=PING_TIMEOUT_SECONDS) as resp:
-            return resp.read().decode("utf-8").strip()
+        return fetch_ping_count()
     except Exception as e:
         print(f"Failed to fetch pings: {e}", flush=True)
         return "unavailable"
@@ -37,7 +42,23 @@ def get_file_content() -> str:
 
 
 class StatusHandler(BaseHTTPRequestHandler):
+    def send_text(self, code: int, text: str) -> None:
+        self.send_response(code)
+        self.send_header("Content-type", "text/plain; charset=utf-8")
+        self.end_headers()
+        self.wfile.write(text.encode("utf-8"))
+
     def do_GET(self):
+        if self.path == "/healthz":
+            # Readiness: OK only when data can be received from the Ping-pong app.
+            try:
+                fetch_ping_count()
+                self.send_text(200, "ok")
+            except Exception as e:
+                print(f"Readiness check failed: {e}", flush=True)
+                self.send_text(503, "ping-pong unavailable")
+            return
+
         status_content = "Waiting for status..."
         if os.path.exists(STATUS_FILE):
             try:
@@ -53,10 +74,7 @@ class StatusHandler(BaseHTTPRequestHandler):
             f"Ping / Pongs: {get_ping_count()}"
         )
 
-        self.send_response(200)
-        self.send_header("Content-type", "text/plain; charset=utf-8")
-        self.end_headers()
-        self.wfile.write(response_text.encode("utf-8"))
+        self.send_text(200, response_text)
 
     def log_message(self, format, *args):
         return

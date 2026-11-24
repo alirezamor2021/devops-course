@@ -16,16 +16,27 @@ spec:
     spec:
       containers:
       - name: pingpong
-        image: alirezamor2021/pingpong:v4.4.0-amd64
-        imagePullPolicy: Always
+        image: alirezamor2021/pingpong:v5.1.0-amd64
         ports:
         - containerPort: 3000
         env:
         - name: PORT
           value: "3000"
+        - name: POSTGRES_HOST
+          value: "postgres-svc"
+        - name: POSTGRES_DB
+          value: "pingpong"
+        - name: POSTGRES_USER
+          value: "pingpong"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
         readinessProbe:
           httpGet:
             path: /healthz
             port: 3000
           initialDelaySeconds: 3
           periodSeconds: 5
+          timeoutSeconds: 3

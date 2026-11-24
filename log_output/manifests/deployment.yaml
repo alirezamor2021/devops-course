@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: log-writer
-        image: alirezamor2021/log-output:v3.3.0-amd64
+        image: alirezamor2021/log-output:v5.1.0-amd64
         command: ["uv", "run", "python", "writer.py"]
         env:
         - name: STATUS_FILE
@@ -27,7 +27,7 @@ spec:
           mountPath: /shared
 
       - name: log-server
-        image: alirezamor2021/log-output:v3.3.0-amd64
+        image: alirezamor2021/log-output:v5.1.0-amd64
         command: ["uv", "run", "python", "server.py"]
         ports:
         - containerPort: 5000
@@ -47,6 +47,13 @@ spec:
             configMapKeyRef:
               name: log-output-config
               key: MESSAGE
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 4
         volumeMounts:
         - name: shared-storage
           mountPath: /shared
