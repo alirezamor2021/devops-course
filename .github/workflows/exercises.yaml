@@ -1,0 +1,115 @@
+name: Release exercises
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "pingpong-app/**"
+      - "log_output/**"
+      - "manifests/**"
+      - "secrets/postgres-secret.enc.yaml"
+      - "kustomization.yaml"
+      - ".github/workflows/exercises.yaml"
+  workflow_dispatch:
+    inputs:
+      skip_database:
+        description: "Deploy everything except the Postgres StatefulSet (readiness probe test)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: dwk-cluster
+  GKE_ZONE: europe-north1-b
+  REGISTRY: europe-north1-docker.pkg.dev
+  REPOSITORY: my-repository
+  NAMESPACE: exercises
+  SKIP_DATABASE: ${{ inputs.skip_database || false }}
+
+concurrency:
+  group: deploy-exercises
+  cancel-in-progress: true
+
+jobs:
+  build-publish-deploy:
+    name: Build, Publish and Deploy
+    runs-on: ubuntu-latest
+    environment: GKE_PROJECT
+    env:
+      SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: "${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}"
+          service_account: "${{ secrets.SERVICE_ACCOUNT }}"
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+
+      - run: gcloud --quiet auth configure-docker $REGISTRY
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          project_id: ${{ env.PROJECT_ID }}
+          location: ${{ env.GKE_ZONE }}
+
+      - name: Form the image prefix and tag
+        run: |
+          echo "IMAGE_PREFIX=$REGISTRY/$PROJECT_ID/$REPOSITORY" >> $GITHUB_ENV
+          echo "TAG=exercises-$GITHUB_SHA" >> $GITHUB_ENV
+
+      - name: Build and publish images
+        run: |
+          docker build --tag "$IMAGE_PREFIX/pingpong:$TAG" pingpong-app
+          docker push "$IMAGE_PREFIX/pingpong:$TAG"
+          docker build --tag "$IMAGE_PREFIX/log-output:$TAG" log_output
+          docker push "$IMAGE_PREFIX/log-output:$TAG"
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Create namespace
+        run: kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply database secret
+        run: |
+          if [ -z "$SOPS_AGE_KEY" ]; then
+            echo "SOPS_AGE_KEY is not set; keeping the existing postgres-secret in $NAMESPACE"
+            exit 0
+          fi
+          curl -sSLo sops https://github.com/getsops/sops/releases/download/v3.10.2/sops-v3.10.2.linux.amd64
+          chmod +x sops
+          ./sops --decrypt secrets/postgres-secret.enc.yaml | kubectl apply -f -
+          rm sops
+
+      - name: Deploy
+        run: |
+          kustomize edit set image \
+            "alirezamor2021/pingpong=$IMAGE_PREFIX/pingpong:$TAG" \
+            "alirezamor2021/log-output=$IMAGE_PREFIX/log-output:$TAG"
+          if [ "$SKIP_DATABASE" = "true" ]; then
+            # Everything except the StatefulSet (its headless Service stays).
+            kustomize build . \
+              | yq 'select(.kind != "StatefulSet")' \
+              | kubectl apply -f -
+            kubectl -n "$NAMESPACE" delete statefulset postgres-ss --ignore-not-found
+            sleep 30
+            kubectl -n "$NAMESPACE" get pods
+            exit 0
+          fi
+          kustomize build . | kubectl apply -f -
+          kubectl -n "$NAMESPACE" rollout status statefulset/postgres-ss --timeout=300s
+          kubectl -n "$NAMESPACE" rollout status deployment/pingpong-app --timeout=300s
+          kubectl -n "$NAMESPACE" rollout status deployment/log-output --timeout=300s
+          kubectl -n "$NAMESPACE" get pods,services,gateway,httproute

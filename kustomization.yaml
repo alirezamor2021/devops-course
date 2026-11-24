@@ -1,0 +1,18 @@
+# Exercises (Ping-pong + Log output) deployed to the "exercises" namespace.
+# Used by .github/workflows/exercises.yaml; can also be applied by hand with
+#   kubectl apply -k .
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: exercises
+resources:
+  - manifests/postgres.yaml
+  - pingpong-app/manifests/deployment.yaml
+  - pingpong-app/manifests/service.yaml
+  - pingpong-app/manifests/healthcheck.yaml
+  - pingpong-app/manifests/httproute.yaml
+  - log_output/manifests/configmap.yaml
+  - log_output/manifests/deployment.yaml
+  - log_output/manifests/service.yaml
+  - log_output/manifests/healthcheck.yaml
+  - log_output/manifests/httproute.yaml
+  - log_output/manifests/gateway.yaml
