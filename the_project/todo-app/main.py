@@ -123,6 +123,30 @@ HTML_CONTENT = """<!DOCTYPE html>
         button:hover { 
             background: #219653; 
         }
+        li.done {
+            background: #f0f0f0;
+            border-left-color: #999;
+        }
+        li.done .todo-text {
+            text-decoration: line-through;
+            color: #777;
+        }
+        button.mark-done {
+            background: #1976d2;
+            font-weight: normal;
+            padding: 8px 16px;
+        }
+        button.mark-done:hover {
+            background: #135ba1;
+        }
+        .done-label {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        footer {
+            margin-top: 30px;
+            color: #777;
+        }
         button.danger {
             background: #d9534f;
             font-weight: normal;
@@ -167,6 +191,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <ul id="todoList"></ul>
         <p id="error" style="color:#c0392b;"></p>
         <button class="danger" onclick="breakApp()">break the app</button>
+        <footer>DevOps with Kubernetes 2026</footer>
     </div>
     <script>
         const TODOS_URL = "__TODOS_URL__";
@@ -181,8 +206,22 @@ HTML_CONTENT = """<!DOCTYPE html>
             for (const todo of todos) {
                 const li = document.createElement('li');
                 const span = document.createElement('span');
+                span.className = 'todo-text';
                 span.textContent = todo.text;
                 li.appendChild(span);
+                if (todo.done) {
+                    li.classList.add('done');
+                    const label = document.createElement('span');
+                    label.className = 'done-label';
+                    label.textContent = 'Done';
+                    li.appendChild(label);
+                } else {
+                    const button = document.createElement('button');
+                    button.className = 'mark-done';
+                    button.textContent = 'Mark done';
+                    button.addEventListener('click', () => markDone(todo.id));
+                    li.appendChild(button);
+                }
                 list.appendChild(li);
             }
         }
@@ -212,6 +251,20 @@ HTML_CONTENT = """<!DOCTYPE html>
                 await loadTodos();
             } catch (e) {
                 errorEl.textContent = 'Could not add todo.';
+            }
+        }
+
+        async function markDone(id) {
+            try {
+                const res = await fetch(TODOS_URL + '/' + id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ done: true })
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                await loadTodos();
+            } catch (e) {
+                errorEl.textContent = 'Could not update todo.';
             }
         }
 
