@@ -105,3 +105,4 @@ DBaaS is the better default for small teams or teams without dedicated DBA/DevOp
 - [4.2](https://github.com/alirezamor2021/devops-course/tree/4.2)
 - [4.3](https://github.com/alirezamor2021/devops-course/tree/4.3) [Monitoring with Helm](infrastructure/monitoring/README.md)
 - [4.4](https://github.com/alirezamor2021/devops-course/tree/4.4) [Argo Rollouts CPU analysis](infrastructure/argo-rollouts/README.md)
+- [4.5](https://github.com/alirezamor2021/devops-course/tree/4.5)
