@@ -79,6 +79,13 @@ jobs:
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v2
 
+      - name: Install the Argo Rollouts kubectl plugin
+        run: |
+          curl -sSLo kubectl-argo-rollouts \
+            https://github.com/argoproj/argo-rollouts/releases/download/v1.10.2/kubectl-argo-rollouts-linux-amd64
+          chmod +x kubectl-argo-rollouts
+          sudo mv kubectl-argo-rollouts /usr/local/bin/
+
       - name: Create namespace
         run: kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 
@@ -103,13 +110,17 @@ jobs:
             kustomize build . \
               | yq 'select(.kind != "StatefulSet")' \
               | kubectl apply -f -
+            kubectl -n "$NAMESPACE" delete deployment pingpong-app --ignore-not-found
             kubectl -n "$NAMESPACE" delete statefulset postgres-ss --ignore-not-found
             sleep 30
             kubectl -n "$NAMESPACE" get pods
             exit 0
           fi
           kustomize build . | kubectl apply -f -
+          # Ping-pong used to be a Deployment; the Rollout replaces it.
+          kubectl -n "$NAMESPACE" delete deployment pingpong-app --ignore-not-found
           kubectl -n "$NAMESPACE" rollout status statefulset/postgres-ss --timeout=300s
-          kubectl -n "$NAMESPACE" rollout status deployment/pingpong-app --timeout=300s
+          # Waits through the 5-minute canary analysis; fails the job if the update is reverted.
+          kubectl argo rollouts status pingpong-app -n "$NAMESPACE" --timeout 10m
           kubectl -n "$NAMESPACE" rollout status deployment/log-output --timeout=300s
           kubectl -n "$NAMESPACE" get pods,services,gateway,httproute

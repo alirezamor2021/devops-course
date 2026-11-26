@@ -1,11 +1,20 @@
-# manifests/pingpong.yaml
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: pingpong-app
   namespace: exercises
 spec:
   replicas: 1
+  strategy:
+    canary:
+      steps:
+      # Start the new version next to the old one...
+      - setWeight: 50
+      # ...and watch the namespace CPU for 5 minutes. If the analysis fails,
+      # the rollout is aborted and only the old version keeps running.
+      - analysis:
+          templates:
+          - templateName: cpu-usage-rate
   selector:
     matchLabels:
       app: pingpong-app

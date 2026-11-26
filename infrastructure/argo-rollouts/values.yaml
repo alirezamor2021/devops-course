@@ -1,0 +1,26 @@
+# Values for argo/argo-rollouts (version pinned in install.sh).
+
+controller:
+  # One controller is enough for this cluster (the chart default is 2 for HA).
+  replicas: 1
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 256Mi }
+  # Let the kube-prometheus-stack Prometheus scrape the controller.
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Rollouts UI (view, promote, abort, retry rollouts). Not exposed outside the cluster:
+# reach it with `kubectl port-forward` only.
+dashboard:
+  enabled: true
+  resources:
+    requests: { cpu: 10m, memory: 32Mi }
+    limits: { memory: 128Mi }
+  service:
+    type: ClusterIP
+    port: 3100
+  ingress:
+    enabled: false

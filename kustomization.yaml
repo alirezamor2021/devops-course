@@ -6,7 +6,8 @@ kind: Kustomization
 namespace: exercises
 resources:
   - manifests/postgres.yaml
-  - pingpong-app/manifests/deployment.yaml
+  - pingpong-app/manifests/analysistemplate.yaml
+  - pingpong-app/manifests/rollout.yaml
   - pingpong-app/manifests/service.yaml
   - pingpong-app/manifests/healthcheck.yaml
   - pingpong-app/manifests/httproute.yaml
