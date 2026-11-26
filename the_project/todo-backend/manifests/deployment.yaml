@@ -35,12 +35,20 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 4
           failureThreshold: 2
+        # Gives the app up to 60s to start; liveness/readiness only begin after it passes,
+        # so a slow start (CPU-limited imports) is not mistaken for a hung process.
+        startupProbe:
+          httpGet:
+            path: /livez
+            port: 3000
+          periodSeconds: 2
+          timeoutSeconds: 2
+          failureThreshold: 30
         # Restarts the container once the app has been "broken" via POST /break.
         livenessProbe:
           httpGet:
             path: /livez
             port: 3000
-          initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 2
           failureThreshold: 3
