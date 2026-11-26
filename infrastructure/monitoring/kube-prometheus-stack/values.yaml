@@ -1,0 +1,41 @@
+# Values for prometheus-community/kube-prometheus-stack (version pinned in ../install.sh).
+# Sized for 3 x e2-standard-2 nodes on GKE.
+
+prometheus:
+  service:
+    # ClusterIP by default: reach it with `kubectl port-forward`.
+    # install.sh switches this to a LoadBalancer restricted to ALLOWED_CIDR when that is set.
+    type: ClusterIP
+    port: 9090
+  prometheusSpec:
+    retention: 7d
+    resources:
+      requests: { cpu: 100m, memory: 400Mi }
+      limits: { memory: 1Gi }
+    # Pick up ServiceMonitors/PodMonitors from every namespace, not only this release's.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { memory: 128Mi }
+
+grafana:
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 256Mi }
+
+# The GKE control plane is managed by Google and cannot be scraped.
+kubeControllerManager: { enabled: false }
+kubeScheduler: { enabled: false }
+kubeEtcd: { enabled: false }
+kubeProxy: { enabled: false }
